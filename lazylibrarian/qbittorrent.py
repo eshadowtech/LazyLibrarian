@@ -78,18 +78,28 @@ class qbittorrentclient(object):
             version = 1
         return version
 
-    def _get_sid(self, base_url, username, password):
-        # login so we can capture SID cookie
-        login_data = makeBytestr(urlencode({'username': username, 'password': password}))
-        try:
-            _ = self.opener.open(base_url + '/login', login_data)
-        except Exception as err:
-            logger.error('Error getting SID. qBittorrent %s: %s' % (type(err).__name__, str(err)))
-            logger.warn('Unable to log in to %s/login' % base_url)
-            return
-        for cookie in self.cookiejar:
-            logger.debug('login cookie: ' + cookie.name + ', value: ' + cookie.value)
+   def _get_sid(self, base_url, username, password):
+    # login so we can capture SID cookie
+    login_data = makeBytestr(urlencode({'username': username, 'password': password}))
+    try:
+        response = self.opener.open(base_url + '/login', login_data)
+    except Exception as err:
+        logger.error('Error getting SID. qBittorrent %s: %s' % (type(err).__name__, str(err)))
+        logger.warn('Unable to log in to %s/login' % base_url)
         return
+
+    # Check what cookies we actually received (works for SID and QBT_SID_<port>)
+    cookie_names = [cookie.name for cookie in self.cookiejar]
+    logger.debug('login cookies: %s' % ', '.join(cookie_names))
+
+    # Look for any cookie that indicates a session (old or new format)
+    has_session = any(
+        name == 'SID' or name.startswith('QBT_SID')
+        for name in cookie_names
+    )
+    if not has_session:
+        logger.error('No session cookie found after login. qBittorrent may have rejected the login (check credentials or IP ban).')
+    return
 
     def _command(self, command, args=None, content_type=None, files=None):
         logger.debug('QBittorrent WebAPI Command: %s' % command)
