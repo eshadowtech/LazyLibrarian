@@ -72,7 +72,7 @@ class qbittorrentclient(object):
     def _api_version(self):
         # noinspection PyBroadException
         try:
-            version = int(self._command('version/api'))
+            version = int(self._command('api/v2/app/webapiVersion'))
         except Exception as err:
             logger.warn('Error getting api version. qBittorrent %s: %s' % (type(err).__name__, str(err)))
             version = 1
